@@ -134,12 +134,10 @@ fault_detector.register_fault_callback(handle_fault_detection)
 
 # LLM Integration
 
-from getpass import getpass
 import os
 
-OPENAI_API_KEY = getpass()
-os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
-chain = ChatOpenAI(model='gpt-4-vision-preview', max_tokens=2048)
+k = os.environ["OPENAI_API_KEY"]
+chain = ChatOpenAI(model='gpt-4-vision-preview', api_key=k, max_tokens=2048)
 prompt = PromptTemplate.from_template(
 """
 {text}
@@ -161,7 +159,7 @@ redis_port = int(config['Redis']['port'])  # Port should be an integer
 redis_db = int(config['Redis']['db'])     # DB should be an integer
 
 
-redis_client = redis.Redis(host=redis_host, port=redis_port, db=redis_db)
+redis_client = redis.Redis(host=redis_host, port=redis_port, db=redis)
 
 simulator = DataFrameSimulator()
 simulator.start()
@@ -258,4 +256,4 @@ def handle_chat_message(message):
 
 
 if __name__ == '__main__':
-    socketio.run(app) # type: ignore
+    socketio.run(app, host="0.0.0.0", port=5001) # type: ignore
