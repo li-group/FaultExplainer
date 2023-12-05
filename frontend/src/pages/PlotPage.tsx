@@ -4,7 +4,7 @@ import { Chip, Drawer, ActionIcon, Button } from '@mantine/core';
 import { ChartingComponent } from '../components/Plot';
 import { IconAdjustments } from '@tabler/icons-react';
 import { usePlot } from '../PlotContext';
-
+import units from '../units.json';
 
 
 export function PlotPage() {
@@ -57,7 +57,7 @@ export function PlotPage() {
                     if (!selectedSeries.includes(key)) return null;
                     return (
                         <div key={key}>
-                            <Text ta="center">{key}</Text>
+                            <Text ta="center">{key} ({units[key]})</Text>
                             <ChartingComponent data={dataSeries[key]} valueKey={key} />
                         </div>
                     )

@@ -207,7 +207,7 @@ export function ChatPage() {
                 />
                 <Button
                     onClick={sendMessage}
-                    // loading={isWaitingForReply}
+                    loading={isWaitingForReply}
                     disabled={isWaitingForReply || newMessage.trim() === ''}>
                     Send
                 </Button>

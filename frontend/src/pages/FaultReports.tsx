@@ -10,8 +10,8 @@ export function FaultReports() {
     console.log(faultHistory);
     return (
         <div>
+            <Text size="xl" ta="center">T^2 Statistic</Text>
             <ResponsiveContainer width="95%" height={200}>
-                <Text size="xl" ta="center">T^2 Statistic</Text>
                 <ComposedChart data={dataPoints}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="timestamp" />
