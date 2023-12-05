@@ -65,8 +65,8 @@ def top_feature_graphs(top_features, timestamp):
         # Send the image to the frontend
         graphs.append({'feature': feature, 'image': img_base64})
 
-        with open(f"debug_{feature}.txt", "w") as file:
-            file.write(img_base64)
+        # with open(f"debug_{feature}.txt", "w") as file:
+        #     file.write(img_base64)
 
         plt.close(fig)
     return graphs
