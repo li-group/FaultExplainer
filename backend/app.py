@@ -152,7 +152,16 @@ app.config['SECRET_KEY'] = 'secret!'
 CORS(app)  # Enable CORS for all routes
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-redis_client = redis.Redis(host='localhost', port=6379, db=0)
+import configparser
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+redis_host = config['Redis']['host']
+redis_port = int(config['Redis']['port'])  # Port should be an integer
+redis_db = int(config['Redis']['db'])     # DB should be an integer
+
+
+redis_client = redis.Redis(host=redis_host, port=redis_port, db=redis_db)
 
 simulator = DataFrameSimulator()
 simulator.start()
