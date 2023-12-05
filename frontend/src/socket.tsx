@@ -1,4 +1,4 @@
 import io from "socket.io-client";
-// import { SOCKET_URL } from "config";
+import configData from './config.json';
 
-export const socket = io('http://localhost:5000');
+export const socket = io(`${configData.SERVER_URL}`);

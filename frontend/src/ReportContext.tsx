@@ -1,5 +1,6 @@
 import { createContext, useState, useContext, useEffect } from 'react';
 import { socket } from './socket';
+import configData from './config.json';
 
 export const ReportContext = createContext(null);
 
@@ -18,7 +19,7 @@ export const ReportProvider = ({ children }) => {
             ]);
             // console.log(data);
             if (data.anomaly) {
-                const response = await fetch('http://localhost:5000/fault_history');
+                const response = await fetch(`${configData.SERVER_URL}/fault_history`);
                 const faultHistoryData = await response.json();
                 setFaultHistory(faultHistoryData);
             }

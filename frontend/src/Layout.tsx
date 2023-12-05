@@ -6,7 +6,7 @@ import { NavItem } from './types/nav';
 import { useEffect } from 'react';
 import { ActionIcon } from '@mantine/core';
 import { IconPlayerPlayFilled, IconPlayerPauseFilled } from '@tabler/icons-react';
-
+import configData from './config.json';
 
 const navData: NavItem[] = [
     { link: '/', label: 'Chat' },
@@ -25,24 +25,23 @@ export function MyHeader() {
 
     useEffect(() => {
         // Fetch the initial state and rate values
-        fetch('http://localhost:5000/get_state') // Replace with your server's URL
+        fetch(`${configData.SERVER_URL}/get_state`) // Replace with your server's URL
             .then(response => response.json())
             .then(data => setSelectedState(data.state === 0 ? 'Normal' : `Fault ${data.state}`));
 
-        fetch('http://localhost:5000/get_rate') // Replace with your server's URL
+        fetch(`${configData.SERVER_URL}/get_rate`) // Replace with your server's URL
             .then(response => response.json())
             .then(data => setRate(Number(data.rate)));
         console.log(rate);
 
-        fetch('http://localhost:5000/get_pause_status') // Replace with your server's URL
+        fetch(`${configData.SERVER_URL}/get_pause_status`) // Replace with your server's URL
             .then(response => response.json())
             .then(data => setIsPaused(data.status));
     }, []);
 
     const handlePauseResume = async () => {
         const endpoint = isPaused ? '/resume' : '/pause';
-        // const response = await fetch(`http://localhost:5000${endpoint}`, { method: 'POST' });
-        const response = await fetch(`http://localhost:5000${endpoint}`, { // Replace with your server's URL
+        const response = await fetch(`${configData.SERVER_URL}${endpoint}`, { // Replace with your server's URL
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ state: isPaused })
@@ -59,7 +58,7 @@ export function MyHeader() {
         const state = value === 'Normal' ? 0 : parseInt(value.split(' ')[1]);
 
         // Send a POST request to the /change_state endpoint
-        const response = await fetch('http://localhost:5000/change_state', { // Replace with your server's URL
+        const response = await fetch(`${configData.SERVER_URL}/change_state`, { // Replace with your server's URL
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ state: state })
@@ -73,7 +72,7 @@ export function MyHeader() {
         setEndValue(value);
 
         // Send a POST request to the /set_rate endpoint
-        const response = await fetch('http://localhost:5000/set_rate', { // Replace with your server's URL
+        const response = await fetch(`${configData.SERVER_URL}/set_rate`, { // Replace with your server's URL
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ rate: value })
@@ -85,7 +84,7 @@ export function MyHeader() {
 
     return (
         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem' }}>
-            <Text size="xl" weight={500}>TEP-LLM</Text>
+            <Text size="xl">TEP-LLM</Text>
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexGrow: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', marginRight: '1rem' }}>
                     <Text size="md" style={{ marginRight: '0.5rem' }}>State:</Text>
