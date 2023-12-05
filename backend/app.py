@@ -159,7 +159,7 @@ redis_port = int(config['Redis']['port'])  # Port should be an integer
 redis_db = int(config['Redis']['db'])     # DB should be an integer
 
 
-redis_client = redis.Redis(host=redis_host, port=redis_port, db=redis)
+redis_client = redis.Redis(host=redis_host, port=redis_port, db=redis_db)
 
 simulator = DataFrameSimulator()
 simulator.start()
