@@ -1,217 +1,198 @@
-// import { useState, useEffect, useRef } from 'react';
-// import { ScrollArea, Textarea, Button, Box } from '@mantine/core';
-// import { useChat } from '../ChatContext';
-// import { socket } from '../socket';
+import { useEffect, useRef, useState } from "react";
+import {
+  ScrollArea,
+  Textarea,
+  ActionIcon,
+  Box,
+  SimpleGrid,
+  Image,
+} from "@mantine/core";
+import { IconSend2 } from "@tabler/icons-react";
+import { useConversationState, ChatMessage } from "../App";
+import { fetchEventSource } from "@microsoft/fetch-event-source";
+import { marked } from "marked";
 
+export default function QuestionsPage() {
+  const { conversation, setConversation } = useConversationState();
+  const [inputText, setInputText] = useState<string>("");
+  const scrollAreaRef = useRef<HTMLDivElement>(null); // Ref to scroll to the end of the chat
 
-// export function ChatPage() {
-//     const { messages, setMessages } = useChat();
-//     // const [messages, setMessages] = useState<{ text: string, isUser: boolean }[]>([]); // Store chat messages
-//     const [newMessage, setNewMessage] = useState(''); // Store new message input
-//     const scrollAreaRef = useRef<HTMLDivElement>(null); // Ref to scroll to the end of the chat
-//     const [isWaitingForReply, setIsWaitingForReply] = useState(false);
-
-//     useEffect(() => {
-//         scrollAreaRef.current!.scrollTo({ top: scrollAreaRef.current!.scrollHeight, behavior: 'smooth' });
-//     }, [messages]);
-
-//     useEffect(() => {
-//         const receiveMessage = (data) => {
-//             if (typeof data === 'string') {
-//                 // Regular text message
-//                 const msg = { text: data, isUser: false };
-//                 setMessages(messages => [...messages, msg]);
-//             } else if (data.images && data.message) {
-//                 // Fault analysis message with graphs and text
-//                 const combinedMessage = {
-//                     text: (
-//                         <div>
-//                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'right' }}>
-//                                 {data.images.map((graph, index) => (
-//                                     <img key={index} src={`data:image/png;base64,${graph.image}`} alt={`Graph for ${graph.feature}`} style={{ maxWidth: '32%', height: 'auto' }} />
-//                                 ))}
-//                             </div>
-//                             <p>{data.message}</p>
-//                         </div>
-//                     ),
-//                     isUser: false
-//                 };
-//                 setMessages(messages => [...messages, combinedMessage]);
-//             }
-//             setIsWaitingForReply(false); // Server reply received, allow sending messages again
-//         };
-
-//         socket.on('chat_reply', receiveMessage);
-
-//         return () => {
-//             socket.off('chat_reply', receiveMessage);
-//         };
-//     }, []);
-
-
-//     // Function to send a message
-//     const sendMessage = () => {
-//         if (newMessage.trim() && !isWaitingForReply) {
-//             setMessages(messages => [...messages, { text: newMessage, isUser: true }]);
-//             socket.emit('chat_message', newMessage);
-//             setNewMessage('');
-//             setIsWaitingForReply(true); // Start waiting for server reply
-
-//             // setTimeout(() => {
-//             //     // Simulate server response
-//             //     const serverMessage = "SERVER MESSAGE"; // Replace with dynamic server message if needed
-//             //     setMessages(messages => [...messages, { text: serverMessage, isUser: false }]);
-//             //     setIsWaitingForReply(false); // Server reply received, allow sending messages again
-//             // }, 1000); // Adjust the delay as needed to simulate server response time
-//         }
-//     };
-
-//     return (
-//         <Box style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 95px)' }}>
-//             <ScrollArea viewportRef={scrollAreaRef} type='auto' style={{ flexGrow: 1 }}>
-//                 <Box style={{ padding: '10px' }}>
-//                     {messages.map((message, index) => (
-//                         <Box
-//                             key={index}
-//                             style={{
-//                                 display: 'flex',
-//                                 justifyContent: message.isUser ? 'flex-end' : 'flex-start',
-//                                 margin: '10px',
-//                             }}>
-//                             <Box
-//                                 style={{
-//                                     maxWidth: '70%',
-//                                     backgroundColor: message.isUser ? '#1a73e8' : '#f1f3f4',
-//                                     color: message.isUser ? 'white' : 'black',
-//                                     padding: '10px',
-//                                     borderRadius: '20px',
-//                                     wordBreak: 'break-word',
-//                                 }}
-//                             >
-//                                 {message.text}
-//                             </Box>
-//                         </Box>
-//                     ))}
-//                 </Box>
-//             </ScrollArea>
-
-//             <Box style={{ display: 'flex', padding: '5px' }}>
-//                 <Textarea
-//                     autosize
-//                     minRows={1}
-//                     maxRows={4}
-//                     placeholder="Type your message here"
-//                     value={newMessage}
-//                     onChange={(e) => setNewMessage(e.target.value)}
-//                     onKeyDown={(e) => {
-//                         if (e.key === 'Enter' && !e.shiftKey && !isWaitingForReply) {
-//                             e.preventDefault();
-//                             sendMessage();
-//                         }
-//                     }}
-//                     style={{ flexGrow: 1, marginRight: '10px' }}
-//                 />
-//                 <Button
-//                     onClick={sendMessage}
-//                     loading={isWaitingForReply}
-//                     disabled={isWaitingForReply || newMessage.trim() === ''}>
-//                     Send
-//                 </Button>
-//             </Box>
-//         </Box>
-//     );
-// }
-
-
-
-
-
-
-
-
-
-
-
-import { useState, useEffect, useRef } from 'react';
-import { ScrollArea, Textarea, Button, Box } from '@mantine/core';
-import { useChat } from '../ChatContext';
-import { socket } from '../socket';
-
-
-export function ChatPage() {
-    const { messages, addMessage, isWaitingForReply, setIsWaitingForReply } = useChat();
-    // const [messages, setMessages] = useState<{ text: string, isUser: boolean }[]>([]); // Store chat messages
-    const [newMessage, setNewMessage] = useState(''); // Store new message input
-    const scrollAreaRef = useRef<HTMLDivElement>(null); // Ref to scroll to the end of the chat
-    // const [isWaitingForReply, setIsWaitingForReply] = useState(false);
-
-    // Function to send a message
-    const sendMessage = () => {
-        if (newMessage.trim() && !isWaitingForReply) {
-            addMessage({ text: newMessage, isUser: true });
-            socket.emit('chat_message', newMessage);
-            setNewMessage('');
-            setIsWaitingForReply(true); // Start waiting for server reply
-
+  async function sendMessageToBackend(
+    messages: { role: string; content: string }[]
+  ) {
+    await fetchEventSource("http://localhost:8000/send_message", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "text/event-stream",
+      },
+      body: JSON.stringify({ data: messages }),
+      async onopen(res) {
+        if (res.ok && res.status === 200) {
+          console.log("Connection made ", res);
+          const empty_msg: ChatMessage = {
+            id: "",
+            role: "assistant",
+            text: "",
+            images: [],
+            explanation: false,
+          };
+          setConversation((data) => [...data, empty_msg]);
+        } else if (
+          res.status >= 400 &&
+          res.status < 500 &&
+          res.status !== 429
+        ) {
+          console.log("Client-side error ", res);
         }
-    };
+      },
+      onmessage(event) {
+        // console.log(event.data);
+        const parsedData = JSON.parse(event.data);
+        // console.log(parsedData);
+        // check that last message id is '' or same as the chunk
+        setConversation((data) => {
+          if (data.length === 0) {
+            console.error(
+              "Something went wrong, a chunk came while the array was empty"
+            );
+            return data;
+          }
+          const last_msg = data[data.length - 1];
+          if (last_msg.id === "" || last_msg.id === parsedData.id) {
+            const new_last_msg: ChatMessage = {
+              id: parsedData.id,
+              role: "assistant",
+              text: last_msg.text.concat(parsedData.content),
+              images: last_msg.images.concat(parsedData.images),
+              explanation: last_msg.explanation,
+            };
+            return [...data.slice(0, -1), new_last_msg];
+          } else {
+            // else raise an error and not append this chunk
+            return data;
+          }
+        });
+      },
+      onclose() {
+        console.log("Connection closed by the server");
+      },
+      onerror(err) {
+        console.log("There was an error from server", err);
+      },
+    });
+  }
 
-    useEffect(() => {
-        scrollAreaRef.current!.scrollTo({ top: scrollAreaRef.current!.scrollHeight, behavior: 'smooth' });
-    }, [messages]);
+  const submitChat = () => {
+    if (inputText !== "") {
+      // inputText should be non empty
+      const new_input_msg: ChatMessage = {
+        id: `user_msg-${
+          conversation.filter((chat) => chat.role === "user").length
+        }`,
+        role: "user",
+        text: inputText,
+        images: [],
+        explanation: false,
+      };
+      setInputText("");
+      const messages = [
+        ...conversation.map((msg) => ({ role: msg.role, content: msg.text })),
+        { role: "user", content: inputText },
+      ];
+      setConversation((prevConv) => [...prevConv, new_input_msg]);
+      sendMessageToBackend(messages);
+    }
+  };
 
-    return (
-        <Box style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 95px)' }}>
-            <ScrollArea viewportRef={scrollAreaRef} type='auto' style={{ flexGrow: 1 }}>
-                <Box style={{ padding: '10px' }}>
-                    {messages.map((message, index) => (
-                        <Box
-                            key={index}
-                            style={{
-                                display: 'flex',
-                                justifyContent: message.isUser ? 'flex-end' : 'flex-start',
-                                margin: '10px',
-                            }}>
-                            <Box
-                                style={{
-                                    maxWidth: '70%',
-                                    backgroundColor: message.isUser ? '#1a73e8' : '#f1f3f4',
-                                    color: message.isUser ? 'white' : 'black',
-                                    padding: '10px',
-                                    borderRadius: '20px',
-                                    wordBreak: 'break-word',
-                                }}
-                            >
-                                {message.text}
-                            </Box>
-                        </Box>
-                    ))}
-                </Box>
-            </ScrollArea>
+  useEffect(() => {
+    scrollAreaRef.current!.scrollTo({
+      top: scrollAreaRef.current!.scrollHeight,
+      behavior: "auto",
+    });
+  }, [conversation]);
 
-            <Box style={{ display: 'flex', padding: '5px' }}>
-                <Textarea
-                    autosize
-                    minRows={1}
-                    maxRows={4}
-                    placeholder="Type your message here"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey && !isWaitingForReply) {
-                            e.preventDefault();
-                            sendMessage();
-                        }
-                    }}
-                    style={{ flexGrow: 1, marginRight: '10px' }}
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "calc(100vh - 95px)",
+      }}
+    >
+      <ScrollArea
+        type="auto"
+        viewportRef={scrollAreaRef}
+        style={{ flexGrow: 1 }}
+      >
+        {/* Assign growth factor of 1 to chat display */}
+        {conversation.map((msg, idx) => (
+          <Box
+            key={idx}
+            style={{
+              display: "flex",
+              justifyContent: msg.role === "user" ? "flex-end" : "flex-start",
+              margin: "10px",
+            }}
+          >
+            <Box
+              style={{
+                maxWidth: "70%",
+                backgroundColor: msg.role === "user" ? "#1a73e8" : "#f1f3f4",
+                color: msg.role === "user" ? "white" : "black",
+                padding: "10px",
+                borderRadius: "20px",
+                wordBreak: "break-word",
+              }}
+            >
+              {msg.images && (
+                <SimpleGrid cols={Math.min(msg.images.length, 3)}>
+                  {(() => {
+                    // Perform the calculation once per message
+                    return msg.images.map((img, idx) => (
+                      <Image
+                        key={idx}
+                        src={`data:image/png;base64,${img.image}`}
+                        alt={`Graph for ${img.name}`}
+                        radius="md"
+                      />
+                    ));
+                  })()}
+                </SimpleGrid>
+              )}
+              {msg.text && (
+                <div
+                  dangerouslySetInnerHTML={{ __html: marked.parse(msg.text) }}
                 />
-                <Button
-                    onClick={sendMessage}
-                    loading={isWaitingForReply}
-                    disabled={isWaitingForReply || newMessage.trim() === ''}>
-                    Send
-                </Button>
+              )}
             </Box>
-        </Box>
-    );
+          </Box>
+        ))}
+      </ScrollArea>
+      {/* Chat input has a growth factor of 0 i.e., it won't grow */}
+      <Textarea
+        radius="md"
+        placeholder="Ask something here ..."
+        autosize
+        maxRows={3}
+        rightSection={
+          <ActionIcon
+            variant="subtle"
+            aria-label="Settings"
+            onClick={submitChat}
+          >
+            <IconSend2 style={{ width: "100%", height: "100%" }} stroke={1.5} />
+          </ActionIcon>
+        }
+        value={inputText}
+        onChange={(event) => setInputText(event.currentTarget.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            submitChat();
+          }
+        }}
+      />
+    </div>
+  );
 }
