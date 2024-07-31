@@ -1,62 +1,176 @@
-import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart } from 'recharts';
-import { Accordion } from '@mantine/core';
-import ReactMarkdown from 'react-markdown';
-import { Text, SimpleGrid } from '@mantine/core';
-import { useReport } from '../ReportContext';
+import {
+  StatContextId,
+  useStatState,
+  useConversationState,
+  startTime,
+} from "../App";
+import {
+  ScrollArea,
+  Text,
+  Accordion,
+  Space,
+  Card,
+  Image,
+  SimpleGrid,
+} from "@mantine/core";
+import { Line } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+  TimeScale,
+  ChartOptions,
+} from "chart.js";
+import "chartjs-adapter-date-fns";
+import { marked } from "marked";
 
-export function FaultReports() {
-    const { dataPoints, setDataPoints, faultHistory, setFaultHistory } = useReport();
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+  TimeScale
+);
 
-    console.log(faultHistory);
-    return (
-        <div>
-            <Text size="xl" ta="center">T^2 Statistic</Text>
-            <ResponsiveContainer width="95%" height={200}>
-                <ComposedChart data={dataPoints}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="timestamp" />
-                    <YAxis />
-                    {/* <Tooltip /> */}
-                    <Line type="step" dataKey="t2_stat" stroke="#8884d8" dot={false} isAnimationActive={false} />
-                    <Area type="step" dataKey="anomaly" stroke="#82ca9d" fill="#eb7575" isAnimationActive={false} />
-                    {/* <Brush dataKey='timestamp' height={30} stroke="#8884d8" startIndex={startIndex} endIndex={endIndex} onChange={handleBrushChange} /> */}
-                </ComposedChart>
-            </ResponsiveContainer>
-            <Accordion style={{ backgroundColor: '#f5f5f5' }}>
-                {faultHistory.map((fault, index) => (
-                    <Accordion.Item key={index} value={`Fault ${index + 1}`}>
-                        <Accordion.Control>{`Fault @ ${new Date(fault.start_time).toLocaleString()}`}</Accordion.Control>
-                        <Accordion.Panel>
-                            <h3>Start Time:</h3>
-                            <p>{new Date(fault.start_time).toLocaleString()}</p>
-                            <h3>Explanation:</h3>
-                            <SimpleGrid cols={3}>
-                                {
-                                    Object.keys(JSON.parse(fault.top_features)).map((key, index) => {
-                                        const data = JSON.parse(fault.top_features)[key];
-                                        return (
-                                            <div key={index}>
-                                                <Text ta="center">{key}</Text>
-                                                <ResponsiveContainer width="95%" height={200} >
-                                                    <LineChart data={data} >
-                                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                                        <XAxis dataKey="timestamp" tickFormatter={(tickItem) => new Date(tickItem).toLocaleTimeString()} />
-                                                        {/* <Label value={key} offset={0} position="top" /> */}
-                                                        <YAxis domain={['auto', 'auto']} />
-                                                        {/* <Tooltip /> */}
-                                                        <Line type="step" dataKey="value" stroke="#8884d8" dot={false} isAnimationActive={false} />
-                                                    </LineChart>
-                                                </ResponsiveContainer>
-                                            </div>
-                                        )
-                                    })
-                                }
-                            </SimpleGrid>
-                            <ReactMarkdown>{fault.explanation}</ReactMarkdown>
-                        </Accordion.Panel>
-                    </Accordion.Item>
-                ))}
-            </Accordion>
-        </div>
-    );
+export default function HistoryPage() {
+  const conversation = useConversationState().conversation;
+  const t2_stat = useStatState();
+  return (
+    <ScrollArea h={`calc(100vh - 60px - 32px)`}>
+      <Text
+        size="xl"
+        ta="center"
+        dangerouslySetInnerHTML={{ __html: "T<sup>2</sup> Statistic" }}
+      />
+      <div
+        className="chart-wrapper"
+        key={"t2_stat"}
+        style={{
+          background: "#f0f0f0",
+          padding: "10px",
+          borderRadius: "5px",
+        }}
+      >
+        <LineChart data={t2_stat} />
+      </div>
+      <Space h="xl" />
+      <Accordion variant="separated">
+        {conversation.map(
+          (msg) =>
+            msg.explanation && (
+              <Accordion.Item key={msg.id} value={`Fault ${msg.id}`}>
+                <Accordion.Control>{msg.id}</Accordion.Control>
+                <Accordion.Panel>
+                  <Card shadow="sm" padding="lg" radius="md" withBorder>
+                    {msg.images && (
+                      <Card.Section>
+                        <SimpleGrid cols={Math.min(msg.images.length, 3)}>
+                          {(() => {
+                            return msg.images.map((img, idx) => (
+                              <Image
+                                key={idx}
+                                src={`data:image/png;base64,${img.image}`}
+                                alt={`Graph for ${img.name}`}
+                                radius="md"
+                              />
+                            ));
+                          })()}
+                        </SimpleGrid>
+                      </Card.Section>
+                    )}
+                    {msg.text && (
+                      <div
+                        dangerouslySetInnerHTML={{
+                          __html: marked.parse(msg.text),
+                        }}
+                      />
+                    )}
+                  </Card>
+                </Accordion.Panel>
+                {/* {idx}:{msg.explanation.toString()} */}
+              </Accordion.Item>
+            )
+        )}
+      </Accordion>
+    </ScrollArea>
+  );
+}
+
+const LineChart = ({ data }: { data: StatContextId[] }) => {
+  const chartData = {
+    labels: Array.from({ length: data.length }, (_, i) => {
+      const currentTime = new Date(startTime);
+      currentTime.setMinutes(currentTime.getMinutes() + i * 3);
+      return currentTime.toISOString();
+    }),
+    datasets: [
+      {
+        label: "",
+        data: data.map((x) => x.t2_stat),
+        fill: "start",
+        borderColor: "rgb(75, 192, 192)",
+        stepped: true,
+        pointRadius: 0.5,
+        borderWidth: 1,
+        pointHoverRadius: 0,
+      },
+      {
+        label: "",
+        data: data.map((x) => (x.anomaly ? x.t2_stat : 0)),
+        fill: "start",
+        borderColor: "rgb(75, 192, 192)",
+        backgroundColor: "rgba(250, 0, 0, 0.4)",
+        stepped: true,
+        pointRadius: 0,
+        borderWidth: 0,
+        pointHoverRadius: 0,
+      },
+    ],
+  };
+
+  const chartOptions: ChartOptions<"line"> = {
+    responsive: true,
+    animation: {
+      duration: 0.25,
+    },
+    scales: {
+      x: {
+        type: "time",
+        time: {
+          // unit: "minute",
+          tooltipFormat: "PPpp", // Tooltip format for time
+          displayFormats: {
+            minute: "HH:mm", // Display format for the x-axis labels
+          },
+        },
+        title: {
+          display: true,
+          text: "Time",
+        },
+      },
+      y: {
+        title: {
+          display: false,
+          text: "Values",
+        },
+      },
+    },
+    plugins: {
+      legend: {
+        display: false,
+      },
+    },
+  };
+
+  return <Line height="100%" data={chartData} options={chartOptions} />;
 };
