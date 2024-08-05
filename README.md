@@ -1,4 +1,4 @@
-# TEP-LLM
+# FaultExplainer
 
 This project consists of a backend and a frontend. It requires a valid `OPENAI_API_KEY` to be placed in `backend/.env`
 
