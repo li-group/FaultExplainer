@@ -174,7 +174,8 @@ def plot_graphs_to_base64(request: ExplainationRequest):
         try:
             # Plot the feature's historical data
             fig, ax = plt.subplots()
-            ax.plot(request.data[feature_name], label=feature_name)
+            ax.step(range(len(request.data[feature_name])), request.data[feature_name], label=feature_name, where='mid')
+            # ax.plot(request.data[feature_name], label=feature_name)
 
             ax.axvline(
                 x=len(request.data[feature_name])-20,
