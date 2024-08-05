@@ -18,7 +18,8 @@ export default function QuestionsPage() {
   const scrollAreaRef = useRef<HTMLDivElement>(null); // Ref to scroll to the end of the chat
 
   async function sendMessageToBackend(
-    messages: { role: string; content: string }[]
+    messages: { role: string; content: string }[],
+    id: string
   ) {
     await fetchEventSource("http://localhost:8000/send_message", {
       method: "POST",
@@ -26,18 +27,10 @@ export default function QuestionsPage() {
         "Content-Type": "application/json",
         Accept: "text/event-stream",
       },
-      body: JSON.stringify({ data: messages }),
+      body: JSON.stringify({ data: messages, id: id }),
       async onopen(res) {
         if (res.ok && res.status === 200) {
           console.log("Connection made ", res);
-          const empty_msg: ChatMessage = {
-            id: "",
-            role: "assistant",
-            text: "",
-            images: [],
-            explanation: false,
-          };
-          setConversation((data) => [...data, empty_msg]);
         } else if (
           res.status >= 400 &&
           res.status < 500 &&
@@ -47,30 +40,29 @@ export default function QuestionsPage() {
         }
       },
       onmessage(event) {
-        // console.log(event.data);
         const parsedData = JSON.parse(event.data);
-        // console.log(parsedData);
-        // check that last message id is '' or same as the chunk
-        setConversation((data) => {
-          if (data.length === 0) {
-            console.error(
-              "Something went wrong, a chunk came while the array was empty"
-            );
-            return data;
-          }
-          const last_msg = data[data.length - 1];
-          if (last_msg.id === "" || last_msg.id === parsedData.id) {
-            const new_last_msg: ChatMessage = {
+        setConversation((prevMessages) => {
+          const index = prevMessages.findIndex(
+            (message) => message.id === parsedData.id
+          );
+          if (index !== -1) {
+            // Message with the same id found, update it
+            const updatedMessages = [...prevMessages];
+            updatedMessages[index] = {
+              ...updatedMessages[index],
+              text: updatedMessages[index].text + parsedData.content,
+            };
+            return updatedMessages;
+          } else {
+            // New message, add it to the array
+            const newMessage: ChatMessage = {
               id: parsedData.id,
               role: "assistant",
-              text: last_msg.text.concat(parsedData.content),
-              images: last_msg.images.concat(parsedData.images),
-              explanation: last_msg.explanation,
+              text: parsedData.content,
+              images: parsedData.images,
+              explanation: false,
             };
-            return [...data.slice(0, -1), new_last_msg];
-          } else {
-            // else raise an error and not append this chunk
-            return data;
+            return [...prevMessages, newMessage];
           }
         });
       },
@@ -101,7 +93,7 @@ export default function QuestionsPage() {
         { role: "user", content: inputText },
       ];
       setConversation((prevConv) => [...prevConv, new_input_msg]);
-      sendMessageToBackend(messages);
+      sendMessageToBackend(messages, new_input_msg.id);
     }
   };
 
