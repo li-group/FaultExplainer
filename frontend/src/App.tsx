@@ -110,6 +110,43 @@ export const columnFilter: string[] = [
   "Condenser coolant load",
 ];
 
+// eslint-disable-next-line react-refresh/only-export-components
+export const columnFilterUnits: Record<string, string> = {
+  "A Feed": "kscmh",
+  "D Feed": "kg/hr",
+  "E Feed": "kg/hr",
+  "A and C Feed": "kscmh",
+  "Recycle Flow": "kscmh",
+  "Reactor Feed Rate": "kscmh",
+  "Reactor Pressure": "kPa gauge",
+  "Reactor Level": "%",
+  "Reactor Temperature": "Deg C",
+  "Purge Rate": "kscmh",
+  "Product Sep Temp": "Deg C",
+  "Product Sep Level": "%",
+  "Product Sep Pressure": "kPa gauge",
+  "Product Sep Underflow": "m3/hr",
+  "Stripper Level": "%",
+  "Stripper Pressure": "kPa gauge",
+  "Stripper Underflow": "m3/hr",
+  "Stripper Temp": "Deg C",
+  "Stripper Steam Flow": "kg/hr",
+  "Compressor Work": "kW",
+  "Reactor Coolant Temp": "Deg C",
+  "Separator Coolant Temp": "Deg C",
+  "D feed load": "%",
+  "E feed load": "%",
+  "A feed load": "%",
+  "A and C feed load": "%",
+  "Compressor recycle valve": "%",
+  "Purge valve": "%",
+  "Separator liquid load": "%",
+  "Stripper liquid load": "%",
+  "Stripper steam valve": "%",
+  "Reactor coolant load": "%",
+  "Condenser coolant load": "%",
+};
+
 const importanceFilter: string[] = [
   "t2_A Feed",
   "t2_D Feed",
@@ -189,7 +226,7 @@ type ChatContextId = {
   conversation: ChatMessage[];
   setConversation: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
 };
-export type StatContextId = { t2_stat: number; anomaly: boolean };
+export type StatContextId = { t2_stat: number; anomaly: boolean; time: string };
 
 interface SimulatorInterface {
   csvFile: string;
@@ -246,6 +283,7 @@ function Simulator({
   return null; // This component doesn't render anything
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const startTime = new Date();
 
 export default function App() {
@@ -353,11 +391,17 @@ export default function App() {
       });
       setT2_stat((data) => {
         if ("t2_stat" in currentRow && "anomaly" in currentRow) {
+          const date = new Date(
+            startTime.getTime() + (Number(currentRow.time) * 3 * 60000) / 0.05
+          );
+          const timeString = date.getHours() + ":" + date.getMinutes();
+
           return [
             ...data,
             {
               t2_stat: parseFloat(currentRow.t2_stat),
               anomaly: currentRow.anomaly === "True",
+              time: timeString,
             },
           ];
         } else {
@@ -438,7 +482,7 @@ export default function App() {
                 size="sm"
               />
               <Text fw={700} size="xl">
-                FOCAL
+                FaultExplainer
               </Text>
               <Group h="100%" w="200%" justify="center" wrap="nowrap">
                 <label htmlFor="fileSelect">Fault:</label>

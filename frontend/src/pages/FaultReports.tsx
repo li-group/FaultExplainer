@@ -1,9 +1,4 @@
-import {
-  StatContextId,
-  useStatState,
-  useConversationState,
-  startTime,
-} from "../App";
+import { useStatState, useConversationState } from "../App";
 import {
   ScrollArea,
   Text,
@@ -13,38 +8,16 @@ import {
   Image,
   SimpleGrid,
 } from "@mantine/core";
-import { Line } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-  TimeScale,
-  ChartOptions,
-} from "chart.js";
-import "chartjs-adapter-date-fns";
 import { marked } from "marked";
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-  TimeScale
-);
+import { AreaChart } from "@mantine/charts";
 
 export default function HistoryPage() {
   const conversation = useConversationState().conversation;
   const t2_stat = useStatState();
+  const transformedData = t2_stat.map((item) => ({
+    ...item,
+    anomaly: item.anomaly ? item.t2_stat : 0,
+  }));
   return (
     <ScrollArea h={`calc(100vh - 60px - 32px)`}>
       <Text
@@ -52,17 +25,24 @@ export default function HistoryPage() {
         ta="center"
         dangerouslySetInnerHTML={{ __html: "T<sup>2</sup> Statistic" }}
       />
-      <div
-        className="chart-wrapper"
-        key={"t2_stat"}
-        style={{
-          background: "#f0f0f0",
-          padding: "10px",
-          borderRadius: "5px",
-        }}
-      >
-        <LineChart data={t2_stat} />
-      </div>
+
+      <AreaChart
+        h={300}
+        data={transformedData}
+        dataKey="time"
+        series={[
+          { name: "t2_stat", label: "T-squred stat", color: "green.2" },
+          { name: "anomaly", label: "Anomaly", color: "red.4" },
+        ]}
+        curveType="step"
+        tickLine="x"
+        withDots={false}
+        withGradient={false}
+        fillOpacity={0.75}
+        strokeWidth={0}
+        withYAxis={false}
+      />
+
       <Space h="xl" />
       <Accordion variant="separated">
         {conversation.map(
@@ -105,72 +85,3 @@ export default function HistoryPage() {
     </ScrollArea>
   );
 }
-
-const LineChart = ({ data }: { data: StatContextId[] }) => {
-  const chartData = {
-    labels: Array.from({ length: data.length }, (_, i) => {
-      const currentTime = new Date(startTime);
-      currentTime.setMinutes(currentTime.getMinutes() + i * 3);
-      return currentTime.toISOString();
-    }),
-    datasets: [
-      {
-        label: "",
-        data: data.map((x) => x.t2_stat),
-        fill: "start",
-        borderColor: "rgb(75, 192, 192)",
-        stepped: true,
-        pointRadius: 0.5,
-        borderWidth: 1,
-        pointHoverRadius: 0,
-      },
-      {
-        label: "",
-        data: data.map((x) => (x.anomaly ? x.t2_stat : 0)),
-        fill: "start",
-        borderColor: "rgb(75, 192, 192)",
-        backgroundColor: "rgba(250, 0, 0, 0.4)",
-        stepped: true,
-        pointRadius: 0,
-        borderWidth: 0,
-        pointHoverRadius: 0,
-      },
-    ],
-  };
-
-  const chartOptions: ChartOptions<"line"> = {
-    responsive: true,
-    animation: {
-      duration: 0.25,
-    },
-    scales: {
-      x: {
-        type: "time",
-        time: {
-          // unit: "minute",
-          tooltipFormat: "PPpp", // Tooltip format for time
-          displayFormats: {
-            minute: "HH:mm", // Display format for the x-axis labels
-          },
-        },
-        title: {
-          display: true,
-          text: "Time",
-        },
-      },
-      y: {
-        title: {
-          display: false,
-          text: "Values",
-        },
-      },
-    },
-    plugins: {
-      legend: {
-        display: false,
-      },
-    },
-  };
-
-  return <Line height="100%" data={chartData} options={chartOptions} />;
-};
