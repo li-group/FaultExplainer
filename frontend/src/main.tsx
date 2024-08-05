@@ -1,6 +1,4 @@
-// import React from 'react'
 import ReactDOM from "react-dom/client";
-import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import App from "./App.tsx";
 import QuestionsPage from "./pages/ChatPage.tsx";
@@ -8,6 +6,8 @@ import HistoryPage from "./pages/FaultReports.tsx";
 import DataPage from "./pages/PlotPage.tsx";
 import ErrorPage from "./error-page.tsx";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import "@mantine/core/styles.css";
+import "@mantine/charts/styles.css";
 
 const router = createBrowserRouter([
   {
@@ -34,7 +34,7 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   // <React.StrictMode>
-  <MantineProvider defaultColorScheme="dark">
+  <MantineProvider defaultColorScheme="light">
     <RouterProvider router={router} />
   </MantineProvider>
   // </React.StrictMode>,
