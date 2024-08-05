@@ -286,6 +286,30 @@ function Simulator({
 // eslint-disable-next-line react-refresh/only-export-components
 export const startTime = new Date();
 
+function getTopKElements(datapoints: DataPointsId, topK: number) {
+  // Step 1: Filter the columns based on importance_filter
+  const filteredData: DataPointsId = {};
+  for (const key of importanceFilter) {
+    if (datapoints[key]) {
+      filteredData[key] = datapoints[key];
+    }
+  }
+
+  // Step 2: Retrieve the last element of the arrays for the filtered columns
+  const lastElements: { [key: string]: number } = {};
+  for (const key in filteredData) {
+    lastElements[key] = filteredData[key][filteredData[key].length - 1];
+  }
+
+  // Step 3: Find the top K elements based on these last elements
+  const sortedKeys = Object.keys(lastElements).sort(
+    (a, b) => lastElements[b] - lastElements[a]
+  );
+  const topKKeys = sortedKeys.slice(0, topK).map((a) => a.slice(3));
+
+  return topKKeys;
+}
+
 export default function App() {
   const [opened, { toggle }] = useDisclosure();
   const [selectedFileId, setSelectedFileId] = useState<number>(0);
@@ -313,26 +337,28 @@ export default function App() {
     setSelectedFileId(fault_name.indexOf(value ?? fault_name[0]));
   };
 
-  async function sendFaultToBackend(fault: { [key: string]: number[] }) {
-    console.log(fault);
+  async function sendFaultToBackend(
+    fault: { [key: string]: number[] },
+    id: string
+  ) {
     await fetchEventSource("http://localhost:8000/explain", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "text/event-stream",
       },
-      body: JSON.stringify({ data: fault }),
+      body: JSON.stringify({ data: fault, id: id }),
       async onopen(res) {
         if (res.ok && res.status === 200) {
           console.log("Connection made ", res);
-          const empty_msg: ChatMessage = {
-            id: "",
-            role: "assistant",
-            text: "",
-            images: [],
-            explanation: true,
-          };
-          setConversation((data) => [...data, empty_msg]);
+          // const empty_msg: ChatMessage = {
+          //   id: "",
+          //   role: "assistant",
+          //   text: "",
+          //   images: [],
+          //   explanation: true,
+          // };
+          // setConversation((data) => [...data, empty_msg]);
         } else if (
           res.status >= 400 &&
           res.status < 500 &&
@@ -343,25 +369,28 @@ export default function App() {
       },
       onmessage(event) {
         const parsedData = JSON.parse(event.data);
-        setConversation((data) => {
-          if (data.length === 0) {
-            console.error(
-              "Something went wrong, a chunk came while the array was empty"
-            );
-            return data;
-          }
-          const last_msg = data[data.length - 1];
-          if (last_msg.id === "" || last_msg.id === parsedData.id) {
-            const new_last_msg: ChatMessage = {
+        setConversation((prevMessages) => {
+          const index = prevMessages.findIndex(
+            (message) => message.id === parsedData.id
+          );
+          if (index !== -1) {
+            // Message with the same id found, update it
+            const updatedMessages = [...prevMessages];
+            updatedMessages[index] = {
+              ...updatedMessages[index],
+              text: updatedMessages[index].text + parsedData.content,
+            };
+            return updatedMessages;
+          } else {
+            // New message, add it to the array
+            const newMessage: ChatMessage = {
               id: parsedData.id,
               role: "assistant",
-              text: last_msg.text.concat(parsedData.content),
-              images: last_msg.images.concat(parsedData.images),
-              explanation: last_msg.explanation,
+              text: parsedData.content,
+              images: parsedData.images,
+              explanation: true,
             };
-            return [...data.slice(0, -1), new_last_msg];
-          } else {
-            return data;
+            return [...prevMessages, newMessage];
           }
         });
       },
@@ -408,46 +437,31 @@ export default function App() {
           return data;
         }
       });
-      if ("anomaly" in currentRow) {
-        if (currentRow.anomaly === "True") {
-          if (currentFaultId == null) {
-            setCurrentFaultId(prevFaultId + 1);
-            setPostFaultDataCount(0);
-          } else {
-            setPostFaultDataCount((count) => count + 1);
-            if (postFaultDataCount === postFaultThreshold) {
-              setPause.open();
-              const dataPoint = Object.keys(currentRow)
-                .filter((key) => importanceFilter.includes(key))
-                .reduce((obj: DataPointsId, key) => {
-                  const numValue = parseFloat(currentRow[key]);
-                  if (!isNaN(numValue)) {
-                    obj[key] = dataPoints[key].map((a) => Number(a));
-                  }
-                  return obj;
-                }, {} as DataPointsId);
-              const sortedKeys = Object.keys(dataPoint).sort((a, b) => {
-                return Number(dataPoint[b]) - Number(dataPoint[a]);
-              });
-              const topKKeys = sortedKeys.slice(0, 6).map((a) => a.slice(3));
-              console.log(topKKeys);
-              const filteredObject = topKKeys.reduce(
-                (acc: Record<string, number[]>, key) => {
-                  acc[key] = dataPoints[key].map((a) => Number(a));
-                  return acc;
-                },
-                {}
-              );
-              // TODO: send filtered object back to backend server at http://localhost:8000/explain
-              sendFaultToBackend(filteredObject);
-            }
-          }
+      if (currentRow.anomaly === "True") {
+        if (currentFaultId == null) {
+          setCurrentFaultId(prevFaultId + 1);
+          setPostFaultDataCount(0);
         } else {
-          if (currentFaultId !== null) {
-            setPrevFaultId(currentFaultId);
-            setCurrentFaultId(null);
-            setPostFaultDataCount(0);
+          setPostFaultDataCount((count) => count + 1);
+          if (postFaultDataCount === postFaultThreshold) {
+            setPause.open();
+            const topKKeys = getTopKElements(dataPoints, 6);
+            console.log(topKKeys);
+            const filteredObject = topKKeys.reduce(
+              (acc: Record<string, number[]>, key) => {
+                acc[key] = dataPoints[key].map((a) => Number(a));
+                return acc;
+              },
+              {}
+            );
+            sendFaultToBackend(filteredObject, `Fault-${currentFaultId}`);
           }
+        }
+      } else {
+        if (currentFaultId !== null) {
+          setPrevFaultId(currentFaultId);
+          setCurrentFaultId(null);
+          setPostFaultDataCount(0);
         }
       }
     }
@@ -507,7 +521,7 @@ export default function App() {
                 </ActionIcon>
                 <Slider
                   min={0}
-                  max={2}
+                  max={20}
                   step={0.0005}
                   value={sliderValue}
                   onChange={setSliderValue}
