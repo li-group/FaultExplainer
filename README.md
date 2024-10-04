@@ -6,7 +6,7 @@ This project consists of a backend and a frontend. It requires a valid `OPENAI_A
 
 To run the backend, follow these steps:
 
-1. Create a virtual environment and install necessary packages `pip install -r backend/requirements.txt`.
+1. Create a virtual environment and install necessary packages `pip install -r backend/requirements.txt`. [Save yourself some time while installing requirements.txt. Install graphviz instead of pygraphviz {https://stackoverflow.com/questions/40266604/pip-install-pygraphviz-fails-failed-building-wheel-for-pygraphviz}. Steps are here depending on the OS you are running]
 2. Change directory to the backend folder: `cd backend`.
 3. Run the backend application: `fastapi dev app.py`.
 
