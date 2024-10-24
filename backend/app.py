@@ -40,18 +40,27 @@ cols = [
     "Compressor Work",
     "Reactor Coolant Temp",
     "Separator Coolant Temp",
-    "D feed load",
-    "E feed load",
-    "A feed load",
-    "A and C feed load",
-    "Compressor recycle valve",
-    "Purge valve",
-    "Separator liquid load",
-    "Stripper liquid load",
-    "Stripper steam valve",
-    "Reactor coolant load",
-    "Condenser coolant load",
+    "Component A to Reactor",
+    "Component B to Reactor",
+    "Component C to Reactor",
+    "Component D to Reactor",
+    "Component E to Reactor",
+    "Component F to Reactor",
+    "Component A in Purge",
+    "Component B in Purge",
+    "Component C in Purge",
+    "Component D in Purge",
+    "Component E in Purge",
+    "Component F in Purge",
+    "Component G in Purge",
+    "Component H in Purge",
+    "Component D in Product",
+    "Component E in Product",
+    "Component F in Product",
+    "Component G in Product",
+    "Component H in Product"
 ]
+
 mapping = {f"x{idx+1}": c for idx, c in enumerate(cols)}
 
 G = nx.read_adjlist("./cg.adjlist", create_using=nx.DiGraph)
@@ -86,15 +95,21 @@ The reaction to produce G has a higher activation energy resulting in more sensi
 Also, the reactions are approximately first-order with respect to the reactant concentrations.
 
 The process has five major unit operations: the reactor, the product condenser, a vapor-liquid separator, a recycle compressor and a product stripper.
-Figure showing a diagram of the process is attached.
+Figure showing a diagram of the process is attached. Different streams are labeled with numbers 1-12 in the figure.
 
-The gaseous reactants are fed to the reactor where they react to form liquid products. The gas phase reactions are catalyzed by a nonvolatile catalyst dissolved
-in the liquid phase. The reactor has an internal cooling bundle for removing the heat of reaction. The products leave the reactor as vapors along with the unreacted feeds.
-The catalyst remains in the reactor. The reactor product stream passes through a cooler for condensing the products and from there to a vapor-liquid separator.
-Noncondensed components recycle back through a centrifugal compressor to the reactor feed.
+The gaseous reactants A (stream 1), D (stream 2), E (stream 3), are the direct feeds to the reactor. Another stream of feeds include flow of A, B, and C are denoted as stream 4, which goes through the stripper and then combine with the recycle stream (stream 8) and streams 1,2, 3, to form the reactor feed (stream 6).
+ The total feed to the reactor is called stream 6 which includes feeds A, B, C, D, E, F.
+The components of stream 6 not only has the reactants A, C, D, E, but also as well as the inert b and the byproduct F. The compositions of stream 6 are monitored by the sensors.
+The gas phase reactions are catalyzed by a nonvolatile catalyst dissolved in the liquid phase. The reactor has an internal cooling bundle for removing the heat of reaction. The reactor level, temperature, pressure, and the outlet temperature coolant flow are monitored by the sensors.
+
+The products leave the reactor as vapors along with the unreacted feeds.
+The catalyst remains in the reactor. The reactor product stream passes through a condenser for condensing the products and from there to a vapor-liquid separator.
+The separator level, pressure, and temperature are monitored by the sensors. 
+Noncondensed components from the separator recycle back through a centrifugal compressor to the reactor feed. The compressor work is being monitored. The inert and byproduct are primarily purged from the system as a vapor from the vapor-liquid separator.  The purge rate (stream 9) and its compositions are monitored by the sensors. Stream 9's compositions are monitored by the sensors which include components, A, B, C, D, E,F, G, H.
 Condensed components move to a product stripping column to remove remaining reactants by stripping with feed stream number 4.
+The stripper underflow (stream 11) is monitored by the sensors. Stream 11's compositions are monitored by the sensors which include components, D, E,F, G, H.
 Products G and H exit the stripper base and are separated in a downstream refining section which is not included in this problem.
-The inert and byproduct are primarily purged from the system as a vapor from the vapor-liquid separator."""
+"""
 
 SYSTEM_MESSAGE = (
     "You are a helpful AI chatbot trained to assist with "
@@ -106,14 +121,43 @@ SYSTEM_MESSAGE = (
 )
 
 EXPLAIN_PROMPT = (
-    "You are provided with the general schematics of the Tennessee"
-    "Eastman process, causal graphs of different features and graphs showing "
+    "You are provided with the general schematics and descriptions of the Tennessee"
+    "Eastman process, and graphs showing "
     "the values of the top contributing features for a recent fault. For every "
     "contributing feature reason about the observation graphs (not all "
     "contributing features might have sudden change around the fault) and "
-    "create hypotheses for these observations based on the causal graph. "
+    "create hypotheses for these observations based on features and the process description in the system message. "
     "Finally combine these hypotheses in order to generate an explanation as to"
     "why this fault occurred and how it is propagating."
+    "Finally, provide the top three likely root cause of the fault."
+)
+
+ROOT_CAUSE = """\begin{tabular}{|c|c|c|}
+\hline IDV(1) & A/C Feed Ratio, B Composition Constant (Stream 4) & Step \\
+\hline IDV(2) & B Composition, A/C Ratio Constant (Stream 4) & Step \\
+\hline IDV (3) & D Feed Temperature (Stream 2) & Step \\
+\hline IDV (4) & Reactor Cooling Water Inlet Temperature & Step \\
+\hline IDV(5) & Condenser Cooling Water Inlet Temperature & Step \\
+\hline IDV(6) & A Feed Loss (Stream 1) & Step \\
+\hline $\operatorname{IDV}(7)$ & C Header Pressure Loss - Reduced Availability (Stream 4) & Step \\
+\hline IDV (8) & A, B, C Feed Composition (Stream 4) & Random Variation \\
+\hline $\operatorname{IDV}(9)$ & D Feed Temperature (Stream 2) & Random Variation \\
+\hline IDV (10) & C Feed Temperature (Stream 4) & Random Variation \\
+\hline $\operatorname{IDV}(11)$ & Reactor Cooling Water Inlet Temperature & Random Variation \\
+\hline IDV (12) & Condenser Cooling Water Inlet Temperature & Random Variation \\
+\hline IDV (13) & Reaction Kinetics & Slow Drift \\
+\hline IDV (14) & Reactor Cooling Water Valve & Sticking \\
+\hline IDV (15) & Condenser Cooling Water Valve & Sticking \\
+\hline $\operatorname{IDV}(21)$ & The valve for Stream 4 was fixed at the steady state position & Constant Position \\
+\hline
+\end{tabular}"""
+
+EXPLAIN_PROMPT_ROOT = (
+    "You are provided with the general schematics and descriptions of the Tennessee"
+    "Eastman process, and graphs showing "
+    "the values of the top contributing features for a recent fault. For every "
+    "contributing feature reason about the observation graphs (not all "
+    "try to guess the root cause of the fault from the following \n{ROOT_CAUSE}"
 )
 
 client = OpenAI()
