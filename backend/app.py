@@ -393,7 +393,12 @@ G = nx.relabel_nodes(G, mapping)
 def get_full_graph(G):
     return G  # Return the entire graph
 
-
+def get_subgraph(G, nodes):
+    subgraph_nodes = set(nodes)
+    for node in nodes:
+        subgraph_nodes.update(G.predecessors(node))
+        subgraph_nodes.update(G.successors(node))
+    return G.subgraph(subgraph_nodes)
 
 load_dotenv()
 
@@ -527,10 +532,11 @@ def ChatModelCompletion(
 def plot_causal_subgraph(request: ExplainationRequest):
     nodes_of_interest = request.data.keys()
     full_graph = get_full_graph(G)
+    sub_graph = get_subgraph(G, nodes_of_interest)
     # Visualize the subgraph
-    pos = graphviz_layout(full_graph, prog="dot")
+    pos = graphviz_layout(sub_graph, prog="dot")
     nx.draw(
-        full_graph,
+        sub_graph,
         pos,
         with_labels=True,
         node_color="lightblue",
@@ -539,7 +545,7 @@ def plot_causal_subgraph(request: ExplainationRequest):
         arrows=True,
     )
     nx.draw_networkx_nodes(
-        full_graph, pos, nodelist=nodes_of_interest, node_color="red", node_size=600
+        sub_graph, pos, nodelist=nodes_of_interest, node_color="red", node_size=600
     )
     plt.title("Causal graph of important features (higlighted in red)")
     plt.axis("off")
@@ -624,21 +630,13 @@ async def explain(request: ExplainationRequest):
                     }
                     for graph in graphs
                 ]
-                + [
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/png;base64,{causal_graph['image']}"
-                        },
-                    }
-                ],
             },
         ]
         return StreamingResponse(
             ChatModelCompletion(
                 messages=emessages,
                 msg_id=request.id,
-                images=graphs + [causal_graph],
+                images=graphs,
             ),
             media_type="text/event-stream",
         )
