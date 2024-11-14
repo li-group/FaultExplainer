@@ -68,12 +68,20 @@ G = nx.read_adjlist("./cg.adjlist", create_using=nx.DiGraph)
 G = nx.relabel_nodes(G, mapping)
 
 
-def get_subgraph(G, nodes):
-    subgraph_nodes = set(nodes)
-    for node in nodes:
-        subgraph_nodes.update(G.predecessors(node))
-        subgraph_nodes.update(G.successors(node))
-    return G.subgraph(subgraph_nodes)
+# def get_subgraph(G, nodes):
+#     try:
+#         print("get_subgraph called with nodes:", nodes)
+#         subgraph_nodes = set(nodes)
+#         print("subgraph_nodes", subgraph_nodes)
+#         for node in nodes:
+#             subgraph_nodes.update(G.predecessors(node))
+#             print("subg", subgraph_nodes)
+#             subgraph_nodes.update(G.successors(node))
+#             print("subgraph2")
+#         print("hell yeah")
+#         return G.subgraph(subgraph_nodes)
+#     except Exception as e:
+#         print("An error occurred:", e)
 
 
 load_dotenv()
@@ -240,34 +248,37 @@ def ChatModelCompletion(
     print(f"Sent {index} chunks")
 
 
-def plot_causal_subgraph(request: ExplainationRequest):
-    nodes_of_interest = request.data.keys()
-    subgraph = get_subgraph(G, nodes_of_interest)
-    # Visualize the subgraph
-    pos = graphviz_layout(subgraph, prog="dot")
-    nx.draw(
-        subgraph,
-        pos,
-        with_labels=True,
-        node_color="lightblue",
-        node_size=500,
-        font_size=10,
-        arrows=True,
-    )
-    nx.draw_networkx_nodes(
-        subgraph, pos, nodelist=nodes_of_interest, node_color="red", node_size=600
-    )
-    plt.title("Causal graph of important features (higlighted in red)")
-    plt.axis("off")
-    img_bytes = io.BytesIO()
-    plt.savefig(img_bytes, format="png")
-    img_bytes.seek(0)
-    img_base64 = base64.b64encode(img_bytes.read()).decode()
-    # # DEBUG
-    # with open(f"./img/causal_graph.png", "wb") as f:
-    #     f.write(base64.b64decode(bytes(img_base64, "utf-8")))
-    plt.close()
-    return {"image": img_base64, "name": "Causal graph"}
+# def plot_causal_subgraph(request: ExplainationRequest):
+#     print("plotting causal subgraph")
+#     nodes_of_interest = request.data.keys()
+#     print(nodes_of_interest)
+#     subgraph = get_subgraph(G, nodes_of_interest)
+#     # Visualize the subgraph
+#     print("subgraph", subgraph)
+#     pos = graphviz_layout(subgraph, prog="dot")
+#     nx.draw(
+#         subgraph,
+#         pos,
+#         with_labels=True,
+#         node_color="lightblue",
+#         node_size=500,
+#         font_size=10,
+#         arrows=True,
+#     )
+#     nx.draw_networkx_nodes(
+#         subgraph, pos, nodelist=nodes_of_interest, node_color="red", node_size=600
+#     )
+#     plt.title("Causal graph of important features (higlighted in red)")
+#     plt.axis("off")
+#     img_bytes = io.BytesIO()
+#     plt.savefig(img_bytes, format="png")
+#     img_bytes.seek(0)
+#     img_base64 = base64.b64encode(img_bytes.read()).decode()
+#     # # DEBUG
+#     # with open(f"./img/causal_graph.png", "wb") as f:
+#     #     f.write(base64.b64decode(bytes(img_base64, "utf-8")))
+#     plt.close()
+#     return {"image": img_base64, "name": "Causal graph"}
 
 
 def plot_graphs_to_base64(request: ExplainationRequest):
@@ -318,9 +329,12 @@ def plot_graphs_to_base64(request: ExplainationRequest):
 async def explain(request: ExplainationRequest):
     try:
         with open("./tep_flowsheet.png", "rb") as image_file:
+            print("Read tep_flowsheet.png")
             schematic_img_base64 = base64.b64encode(image_file.read()).decode("utf-8")
         graphs = plot_graphs_to_base64(request)
-        causal_graph = plot_causal_subgraph(request)
+        print("hello world")
+        #causal_graph = plot_causal_subgraph(request)
+        print("Sending explaination")
         schema_image = {
             "type": "image_url",
             "image_url": {"url": f"data:image/png;base64,{schematic_img_base64}"},
@@ -340,21 +354,23 @@ async def explain(request: ExplainationRequest):
                     }
                     for graph in graphs
                 ]
-                + [
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/png;base64,{causal_graph['image']}"
-                        },
-                    }
-                ],
+                # + [
+                #     {
+                #         "type": "image_url",
+                #         "image_url": {
+                #             "url": f"data:image/png;base64,{causal_graph['image']}"
+                #         },
+                #     }
+                # ],
             },
         ]
+        print(emessages)
+        
         return StreamingResponse(
             ChatModelCompletion(
                 messages=emessages,
                 msg_id=request.id,
-                images=graphs + [causal_graph],
+                # images=graphs + [causal_graph],
             ),
             media_type="text/event-stream",
         )
@@ -371,3 +387,5 @@ async def send_message(request: MessageRequest):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
