@@ -117,17 +117,6 @@ export const columnFilter: string[] = [
   "Component F in Product",
   "Component G in Product",
   "Component H in Product",
-  "D feed load",
-  "E feed load",
-  "A feed load",
-  "A and C feed load",
-  "Compressor recycle valve",
-  "Purge valve",
-  "Separator liquid load",
-  "Stripper liquid load",
-  "Stripper steam valve",
-  "Reactor coolant load",
-  "Condenser coolant load",
 ];
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -174,24 +163,12 @@ export const columnFilterUnits: Record<string, string> = {
   "Component F in Product": "",
   "Component G in Product": "",
   "Component H in Product": "",
-  "D feed load": "%",
-  "E feed load": "%",
-  "A feed load": "%",
-  "A and C feed load": "%",
-  "Compressor recycle valve": "%",
-  "Purge valve": "%",
-  "Separator liquid load": "%",
-  "Stripper liquid load": "%",
-  "Stripper steam valve": "%",
-  "Reactor coolant load": "%",
-  "Condenser coolant load": "%",
 };
 
 console.log("columnFilter: ", columnFilter);
 console.log("columnFilterUnits: ", columnFilterUnits);
 
 const importanceFilter: string[] = [
-  "t2_time",
   "t2_A Feed",
   "t2_D Feed",
   "t2_E Feed",
@@ -233,17 +210,6 @@ const importanceFilter: string[] = [
   "t2_Component F in Product",
   "t2_Component G in Product",
   "t2_Component H in Product",
-  "t2_D feed load",
-  "t2_E feed load",
-  "t2_A feed load",
-  "t2_A and C feed load",
-  "t2_Compressor recycle valve",
-  "t2_Purge valve",
-  "t2_Separator liquid load",
-  "t2_Stripper liquid load",
-  "t2_Stripper steam valve",
-  "t2_Reactor coolant load",
-  "t2_Condenser coolant load",
 ];
 
 const intro = `The process produces two products from four reactants. Also present are an inert and a byproduct making a total of eight components:
@@ -356,8 +322,8 @@ function getTopKElements(datapoints: DataPointsId, topK: number) {
   // Step 1: Filter the columns based on importance_filter
   const filteredData: DataPointsId = {};
   for (const key of importanceFilter) {
+    console.log("Key", key);
     if (datapoints[key]) {
-      console.log("Key", key);
       filteredData[key] = datapoints[key];
     }
   }
@@ -366,6 +332,7 @@ function getTopKElements(datapoints: DataPointsId, topK: number) {
   const lastElements: { [key: string]: number } = {};
   for (const key in filteredData) {
     lastElements[key] = filteredData[key][filteredData[key].length - 1];
+    console.log("lastElements", lastElements);
   }
 
   // Step 3: Find the top K elements based on these last elements
@@ -373,6 +340,7 @@ function getTopKElements(datapoints: DataPointsId, topK: number) {
     (a, b) => lastElements[b] - lastElements[a]
   );
   const topKKeys = sortedKeys.slice(0, topK).map((a) => a.slice(3));
+  console.log("topKKeys", topKKeys);
 
   return topKKeys;
 }
@@ -413,6 +381,7 @@ export default function App() {
     fault: { [key: string]: number[] },
     id: string
   ) {
+    console.log("Sending fault to backend");
     await fetchEventSource("http://localhost:8000/explain", {
       method: "POST",
       headers: {
