@@ -141,32 +141,49 @@ EXPLAIN_PROMPT = (
 )
 
 ROOT_CAUSE = """\begin{tabular}{|c|c|c|}
-\hline IDV(1) & A/C Feed Ratio, B Composition Constant (Stream 4) & Step \\
-\hline IDV(2) & B Composition, A/C Ratio Constant (Stream 4) & Step \\
-\hline IDV (3) & D Feed Temperature (Stream 2) & Step \\
-\hline IDV (4) & Reactor Cooling Water Inlet Temperature & Step \\
-\hline IDV(5) & Condenser Cooling Water Inlet Temperature & Step \\
-\hline IDV(6) & A Feed Loss (Stream 1) & Step \\
-\hline $\operatorname{IDV}(7)$ & C Header Pressure Loss - Reduced Availability (Stream 4) & Step \\
-\hline IDV (8) & A, B, C Feed Composition (Stream 4) & Random Variation \\
-\hline $\operatorname{IDV}(9)$ & D Feed Temperature (Stream 2) & Random Variation \\
-\hline IDV (10) & C Feed Temperature (Stream 4) & Random Variation \\
-\hline $\operatorname{IDV}(11)$ & Reactor Cooling Water Inlet Temperature & Random Variation \\
-\hline IDV (12) & Condenser Cooling Water Inlet Temperature & Random Variation \\
-\hline IDV (13) & Reaction Kinetics & Slow Drift \\
-\hline IDV (14) & Reactor Cooling Water Valve & Sticking \\
-\hline IDV (15) & Condenser Cooling Water Valve & Sticking \\
-\hline $\operatorname{IDV}(21)$ & The valve for Stream 4 was fixed at the steady state position & Constant Position \\
+\hline IDV(1) A/C Feed Ratio, B Composition Constant (Stream 4) & Step \\
+\hline IDV(2) B Composition, A/C Ratio Constant (Stream 4) & Step \\
+\hline IDV (3) D Feed Temperature (Stream 2) & Step \\
+\hline IDV (4) Reactor Cooling Water Inlet Temperature & Step \\
+\hline IDV(5) Condenser Cooling Water Inlet Temperature & Step \\
+\hline IDV(6) A Feed Loss (Stream 1) & Step \\
+\hline IDV (7) C Header Pressure Loss - Reduced Availability (Stream 4) & Step \\
+\hline IDV (8) A, B, C Feed Composition (Stream 4) & Random Variation \\
+\hline IDV(9) D Feed Temperature (Stream 2) & Random Variation \\
+\hline IDV (10) C Feed Temperature (Stream 4) & Random Variation \\
+\hline IDV(11) Reactor Cooling Water Inlet Temperature & Random Variation \\
+\hline IDV (12) Condenser Cooling Water Inlet Temperature & Random Variation \\
+\hline IDV (13) Reaction Kinetics & Slow Drift \\
+\hline IDV (14) Reactor Cooling Water Valve & Sticking \\
+\hline IDV (15) Condenser Cooling Water Valve & Sticking \\
+\hline IDV(16) The valve for Stream 4 was fixed at the steady state position & Constant Position \\
 \hline
 \end{tabular}"""
 
-EXPLAIN_PROMPT_ROOT = (
-    "You are provided with the general schematics and descriptions of the Tennessee"
+# EXPLAIN_PROMPT_ROOT = (
+#     "You are provided with the general schematics and descriptions of the Tennessee"
+#     "Eastman process, and graphs showing "
+#     "the values of the top contributing features for a recent fault. For every "
+#     "contributing feature reason about the observation graphs (not all "
+#     "Please pick the top three possible root cause of the fault in descending order using your reasoning and "
+#     "understanding of the background knowledge I provided you in the context from the following list of 16 faults. Do not go outside these 16 causes. \n{ROOT_CAUSE}"
+# )
+
+EXPLAIN_ROOT = (
+    "You are provided with the general schematics and descriptions of the Tennessee "
     "Eastman process, and graphs showing "
     "the values of the top contributing features for a recent fault. For every "
-    "contributing feature reason about the observation graphs (not all "
-    "try to guess the root cause of the fault from the following \n{ROOT_CAUSE}"
+    "contributing feature reason about the observation graphs. "
+    "Please pick the top three possible root cause of the fault in descending order using your reasoning and "
+    "understanding of the background knowledge I provided you in the context from the following list of 16 faults. "
+    "Do not go outside these 16 causes. also explain in each of the three reasons why they are the likely ones based on the physics"
+    "of the process. For example, you can explain how a given root cause of a fault is propagated through the process and how"
+    "it causes the top six features I gave to you to change. If the reasoning is consistent with the trend of the six "
+    "features, then the root cause is likely. Now here are all the 16 possible root causes:\n{root_cause}"
 )
+
+# Now, format the string with the root_cause variable
+EXPLAIN_PROMPT_ROOT = EXPLAIN_ROOT.format(root_cause=ROOT_CAUSE)
 
 client = OpenAI()
 
@@ -218,7 +235,6 @@ def ChatModelCompletion(
         stream=True,
         temperature=0,
     )
-    print("sending response")
     index = 0
     for chunk in response:
         # print(chunk)
@@ -283,7 +299,9 @@ def ChatModelCompletion(
 
 def plot_graphs_to_base64(request: ExplainationRequest):
     graphs = []
+    print("plotting graphs", request.data)
     for feature_name in request.data:
+        print("plotting", feature_name)
         try:
             # Plot the feature's historical data
             fig, ax = plt.subplots()
@@ -332,7 +350,6 @@ async def explain(request: ExplainationRequest):
             print("Read tep_flowsheet.png")
             schematic_img_base64 = base64.b64encode(image_file.read()).decode("utf-8")
         graphs = plot_graphs_to_base64(request)
-        print("hello world")
         #causal_graph = plot_causal_subgraph(request)
         print("Sending explaination")
         schema_image = {
@@ -363,14 +380,12 @@ async def explain(request: ExplainationRequest):
                 #     }
                 # ],
             },
-        ]
-        print(emessages)
-        
+        ]        
         return StreamingResponse(
             ChatModelCompletion(
                 messages=emessages,
                 msg_id=request.id,
-                # images=graphs + [causal_graph],
+                images=graphs,
             ),
             media_type="text/event-stream",
         )

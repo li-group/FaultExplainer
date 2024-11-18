@@ -233,6 +233,10 @@ class FaultDetectionModel(FaultDetectionModel):  # extend your current class
                     for contrib_name, contrib_value in contrib_dict.items():
                         processed_row[contrib_name] = contrib_value
                     
+                    # Reorder columns to move 't2_stat' and 'anomaly' to the end
+                    reordered_columns = [col for col in processed_row.columns if col not in ["t2_stat", "anomaly"]] + ["anomaly", "t2_stat"]
+                    processed_row = processed_row[reordered_columns]
+                    
                     processed_data.append(processed_row)
 
                 # Concatenate all processed rows and save to a new CSV
