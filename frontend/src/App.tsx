@@ -486,7 +486,7 @@ export default function App() {
           setPostFaultDataCount((count) => count + 1);
           if (postFaultDataCount === postFaultThreshold) {
             setPause.open();
-            const topKKeys = getTopKElements(dataPoints, 6);
+            const topKKeys = getTopKElements(dataPoints, 12);
             console.log(topKKeys);
             const filteredObject = topKKeys.reduce(
               (acc: Record<string, number[]>, key) => {
