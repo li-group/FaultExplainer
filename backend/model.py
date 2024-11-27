@@ -6,7 +6,7 @@ import uuid
 
 
 class FaultDetectionModel:
-    def __init__(self, n_components=0.9, alpha=0.05):
+    def __init__(self, n_components=0.9, alpha=0.01):
         
         self.scaler = StandardScaler()
         self.pca = PCA(n_components=n_components)
@@ -164,7 +164,7 @@ class FaultDetectionModel:
         # Vectorized calculation of c(j, i)
         def calculate_c(j):
             c_ji = (t / self.lamda) * self.P[j, :] * (z[j])  # - self.scaler.mean_[j])
-            return np.maximum(c_ji, 0)  # Ensures non-negativity
+            return c_ji
 
         # Calculate C(j) for each j
         C_list = np.array([calculate_c(j).sum() for j in range(len(z))])
@@ -213,9 +213,13 @@ class FaultDetectionModel(FaultDetectionModel):  # extend your current class
             if filename.endswith(".csv"):  # Assuming files are in CSV format
                 file_path = os.path.join(folder_path, filename)
                 data = pd.read_csv(file_path)
-                
+                time_column = data["time"]
+                #drop time column
+                data = data.drop(columns=["time"])
                 processed_data = []
-
+                self.data_buffer = pd.DataFrame()  # Reset the data buffer for each file        
+                #iterater over rows of data
+                
                 for index, row in data.iterrows():
                     row_df = pd.DataFrame([row])  # Convert row to DataFrame for compatibility
 
@@ -241,15 +245,19 @@ class FaultDetectionModel(FaultDetectionModel):  # extend your current class
 
                 # Concatenate all processed rows and save to a new CSV
                 processed_df = pd.concat(processed_data, ignore_index=True)
+                #add time to the first column
+                processed_df.insert(0, "time", time_column)
                 output_filename = f"{filename.split('.')[0]}.csv"
-                processed_df.to_csv(os.path.join("/Users/rahulrocksn/Desktop/workspace/li-can/FaultExplainer/backend/test", output_filename), index=False)
+                processed_df.to_csv(os.path.join("./", output_filename), index=False)
 
 # Example usage:
 # Initialize the model and train it with a training dataset
 model = FaultDetectionModel()
-training_data = pd.read_csv("/Users/rahulrocksn/Desktop/workspace/li-can/FaultExplainer/backend/data/fault0.csv")  # Replace with your training data file
+training_data = pd.read_csv("./data/fault0.csv")  # Replace with your training data file
+#remove the timestamp column
+training_data = training_data.drop(columns=["time"])
 model.fit(training_data)
 
 # Process and save T² statistics and contributions for each file in the data folder
-data_folder = "/Users/rahulrocksn/Desktop/workspace/li-can/FaultExplainer/backend/data"  # Replace with the actual folder path
+data_folder = "./data"  # Replace with the actual folder path
 model.process_files_in_folder(data_folder)

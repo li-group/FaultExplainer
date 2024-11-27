@@ -238,7 +238,7 @@ Condensed components move to a product stripping column to remove remaining reac
 Products G and H exit the stripper base and are separated in a downstream refining section which is not included in this problem.
 The inert and byproduct are primarily purged from the system as a vapor from the vapor-liquid separator.`;
 
-const postFaultThreshold: number = 20;
+const postFaultThreshold: number = 2;
 // TYPES
 type RowType = { [key: string]: string };
 type CSVType = RowType[];
@@ -486,7 +486,7 @@ export default function App() {
           setPostFaultDataCount((count) => count + 1);
           if (postFaultDataCount === postFaultThreshold) {
             setPause.open();
-            const topKKeys = getTopKElements(dataPoints, 12);
+            const topKKeys = getTopKElements(dataPoints,6);
             console.log(topKKeys);
             const filteredObject = topKKeys.reduce(
               (acc: Record<string, number[]>, key) => {

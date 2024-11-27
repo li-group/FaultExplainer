@@ -568,7 +568,7 @@ ROOT_CAUSE = """
 13. IDV (13) Reaction Kinetics & Slow Drift \\
 14. IDV (14) Reactor Cooling Water Valve & Sticking \\
 15. IDV (15) Condenser Cooling Water Valve & Sticking \\
-16. IDV(16) The valve for Stream 4 was fixed at the steady state position & Constant Position \\"""
+16. IDV(21) The valve for Stream 4 was fixed at the steady state position & Constant Position \\"""
 
 # EXPLAIN_PROMPT_ROOT = (
 #     "You are provided with the general schematics and descriptions of the Tennessee"
@@ -744,7 +744,7 @@ def plot_graphs_to_base64(request: ExplainationRequest):
             # ax.plot(request.data[feature_name], label=feature_name)
 
             ax.axvline(
-                x=len(request.data[feature_name]) - 20,
+                x=len(request.data[feature_name]) - 10,
                 color="r",
                 linestyle="--",
                 label="Fault Start",
@@ -808,7 +808,7 @@ async def explain(request: ExplainationRequest):
         # Prepare messages for o1
         initial_explanation = initial_explanation + "\n" + O1_REASONING_PROMPT
         print ("""Initial explanation: """, initial_explanation)
-        print ("""O1 reasoning prompt: """, O1_REASONING_PROMPT)
+        
 
         # Prepare messages for o1-preview
         o1_messages = [
@@ -816,15 +816,18 @@ async def explain(request: ExplainationRequest):
             {"role": "user", "content": initial_explanation},
         ]
 
-        # Stream the refined explanation from o1-preview
-        return StreamingResponse(
-            ChatModelCompletion(
+        o1_result = ChatModelCompletion(
                 messages=o1_messages,
                 msg_id=request.id,
                 images=graphs,
                 seed=seed,
-                model="o1-preview",
-            ),
+                model="gpt-4o",
+            )
+        
+
+        # Stream the refined explanation from o1-preview
+        return StreamingResponse(
+            o1_result,
             media_type="text/event-stream",
         )
     except Exception as e:

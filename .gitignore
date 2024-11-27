@@ -1,2 +1,5 @@
 *.rdb
 .env
+.DS_Store
+node_modules/.yarn-integrity
+yarn.lock
