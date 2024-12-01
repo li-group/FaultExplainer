@@ -23,6 +23,7 @@ class FaultDetectionModel:
     def fit(self, training_df):
         self.feature_names = training_df.columns.to_list()
         Z = self.scaler.fit_transform(training_df)
+        self.save_mean_and_std("backend/stats/features_mean_std.csv")
         self.pca.fit(Z)
         self.a = self.pca.n_components_
         self.m = self.pca.n_features_in_
@@ -31,6 +32,15 @@ class FaultDetectionModel:
         self.lamda = self.pca.explained_variance_
         # set thresholds
         self.set_t2_threshold()
+
+    def save_mean_and_std(self, filename):
+        mean = self.scaler.mean_
+        std = self.scaler.scale_
+        #save self.feature_names, mean and std to a csv file
+        df = pd.DataFrame({"feature": self.feature_names, "mean": mean, "std": std})
+        df.to_csv(filename, index=False)
+        return 0
+        
 
     def set_t2_threshold(self):
         assert hasattr(self.pca, "n_samples_"), "Model hasn't been trained"
@@ -138,22 +148,6 @@ class FaultDetectionModel:
         fig.update_layout(xaxis_title="Time", yaxis_title="T^2 Statistic")
         return fig
 
-    # def t2_contrib(self, timestamp):
-    #     x = self.data_buffer[self.data_buffer["timestamp"] == timestamp][
-    #         self.feature_names
-    #     ]
-    #     z = self.scaler.transform(x)[0]
-    #     # Precompute t as a vector
-    #     t = z.T @ self.P
-
-    #     # Vectorized calculation of c(j, i)
-    #     def calculate_c(j):
-    #         c_ji = (t / self.lamda) * self.P[j, :] * (z[j])  # - self.scaler.mean_[j])
-    #         return np.maximum(c_ji, 0)  # Ensures non-negativity
-
-    #     # Calculate C(j) for each j
-    #     C_list = np.array([calculate_c(j).sum() for j in range(len(z))])
-    #     return C_list
     def t2_contrib(self, index):
         # Select the row by index rather than 'timestamp'
         x = self.data_buffer.iloc[[index]][self.feature_names]
@@ -164,7 +158,7 @@ class FaultDetectionModel:
         # Vectorized calculation of c(j, i)
         def calculate_c(j):
             c_ji = (t / self.lamda) * self.P[j, :] * (z[j])  # - self.scaler.mean_[j])
-            return c_ji
+            return np.maximum(c_ji, 0)  # Ensures non-negativity
 
         # Calculate C(j) for each j
         C_list = np.array([calculate_c(j).sum() for j in range(len(z))])
@@ -253,11 +247,11 @@ class FaultDetectionModel(FaultDetectionModel):  # extend your current class
 # Example usage:
 # Initialize the model and train it with a training dataset
 model = FaultDetectionModel()
-training_data = pd.read_csv("./data/fault0.csv")  # Replace with your training data file
+training_data = pd.read_csv("./backend/data/fault0.csv")  # Replace with your training data file
 #remove the timestamp column
 training_data = training_data.drop(columns=["time"])
 model.fit(training_data)
 
 # Process and save T² statistics and contributions for each file in the data folder
-data_folder = "./data"  # Replace with the actual folder path
+data_folder = "./backend/data"  # Replace with the actual folder path
 model.process_files_in_folder(data_folder)
