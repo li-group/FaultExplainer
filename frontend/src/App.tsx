@@ -22,6 +22,8 @@ import {
   IconReport,
 } from "@tabler/icons-react";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
+import fs from 'fs';
+import path from 'path';
 
 // CONSTANTS
 const fileId2fileName = [
@@ -75,7 +77,7 @@ const fault_name = [
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const columnFilter: string[] = [
-  "time",
+  // "time",
   "A Feed",
   "D Feed",
   "E Feed",
@@ -117,11 +119,22 @@ export const columnFilter: string[] = [
   "Component F in Product",
   "Component G in Product",
   "Component H in Product",
+  "D feed load",
+  "E feed load",
+  "A feed load",
+  "A and C feed load",
+  "Compressor recycle valve",
+  "Purge valve",
+  "Separator liquid load",
+  "Stripper liquid load",
+  "Stripper steam valve",
+  "Reactor coolant load",
+  "Condenser coolant load",
 ];
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const columnFilterUnits: Record<string, string> = {
-  time: "min",
+  // time: "min",
   "A Feed": "kscmh",
   "D Feed": "kg/hr",
   "E Feed": "kg/hr",
@@ -144,25 +157,36 @@ export const columnFilterUnits: Record<string, string> = {
   "Compressor Work": "kW",
   "Reactor Coolant Temp": "Deg C",
   "Separator Coolant Temp": "Deg C",
-  "Component A to Reactor": "",
-  "Component B to Reactor": "",
-  "Component C to Reactor": "",
-  "Component D to Reactor": "",
-  "Component E to Reactor": "",
-  "Component F to Reactor": "",
-  "Component A in Purge": "",
-  "Component B in Purge": "",
-  "Component C in Purge": "",
-  "Component D in Purge": "",
-  "Component E in Purge": "",
-  "Component F in Purge": "",
-  "Component G in Purge": "",
-  "Component H in Purge": "",
-  "Component D in Product": "",
-  "Component E in Product": "",
-  "Component F in Product": "",
-  "Component G in Product": "",
-  "Component H in Product": "",
+  "Component A to Reactor": "mole %",
+  "Component B to Reactor": "mole %",
+  "Component C to Reactor": "mole %",
+  "Component D to Reactor": "mole %",
+  "Component E to Reactor": "mole %",
+  "Component F to Reactor": "mole %",
+  "Component A in Purge": "mole %",
+  "Component B in Purge": "mole %",
+  "Component C in Purge": "mole %",
+  "Component D in Purge": "mole %",
+  "Component E in Purge": "mole %",
+  "Component F in Purge": "mole %",
+  "Component G in Purge": "mole %",
+  "Component H in Purge": "mole %",
+  "Component D in Product": "mole %",
+  "Component E in Product": "mole %",
+  "Component F in Product": "mole %",
+  "Component G in Product": "mole %",
+  "Component H in Product": "mole %",
+  "D feed load": "mole %",
+  "E feed load": "mole %",
+  "A feed load": "mole %",
+  "A and C feed load": "mole %",
+  "Compressor recycle valve": "mole %",
+  "Purge valve": "mole %",
+  "Separator liquid load": "mole %",
+  "Stripper liquid load": "mole %",
+  "Stripper steam valve": "mole %",
+  "Reactor coolant load": "mole %",
+  "Condenser coolant load": "mole %",
 };
 
 console.log("columnFilter: ", columnFilter);
@@ -210,6 +234,17 @@ const importanceFilter: string[] = [
   "t2_Component F in Product",
   "t2_Component G in Product",
   "t2_Component H in Product",
+  "t2_D feed load",
+  "t2_E feed load",
+  "t2_A feed load",
+  "t2_A and C feed load",
+  "t2_Compressor recycle valve",
+  "t2_Purge valve",
+  "t2_Separator liquid load",
+  "t2_Stripper liquid load",
+  "t2_Stripper steam valve",
+  "t2_Reactor coolant load",
+  "t2_Condenser coolant load",
 ];
 
 const intro = `The process produces two products from four reactants. Also present are an inert and a byproduct making a total of eight components:
@@ -238,7 +273,16 @@ Condensed components move to a product stripping column to remove remaining reac
 Products G and H exit the stripper base and are separated in a downstream refining section which is not included in this problem.
 The inert and byproduct are primarily purged from the system as a vapor from the vapor-liquid separator.`;
 
-const postFaultThreshold: number = 2;
+// Read and parse the config.json file
+// const configPath = path.resolve(__dirname, '../config.json');
+// const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+
+// // Extract the postFaultThreshold value
+// const postFaultThreshold: number = config.fault_trigger_consecutive_step-1;
+// const topkfeatures: number = config.topkfeatures;
+const postFaultThreshold: number = 6-1;
+const topkfeatures: number = 6;
+
 // TYPES
 type RowType = { [key: string]: string };
 type CSVType = RowType[];
@@ -377,34 +421,30 @@ export default function App() {
     console.log("Active file path:", fileId2fileName[selectedFileId]);
   }, [selectedFileId]);
 
+  
   async function sendFaultToBackend(
     fault: { [key: string]: number[] },
-    id: string
+    id: string,
+    filePath: string
   ) {
-    console.log("Sending fault to backend");
+    console.log("Sending fault to backend with file:", filePath);
+    console.log("check the datta", JSON.stringify({ data: fault, id: id, file: filePath }));
+    const payload = {
+      data: fault,
+      id: id,
+      file: filePath, // Include the filePath in the request payload
+    };
     await fetchEventSource("http://localhost:8000/explain", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "text/event-stream",
       },
-      body: JSON.stringify({ data: fault, id: id }),
+      body: JSON.stringify(payload),
       async onopen(res) {
         if (res.ok && res.status === 200) {
           console.log("Connection made ", res);
-          // const empty_msg: ChatMessage = {
-          //   id: "",
-          //   role: "assistant",
-          //   text: "",
-          //   images: [],
-          //   explanation: true,
-          // };
-          // setConversation((data) => [...data, empty_msg]);
-        } else if (
-          res.status >= 400 &&
-          res.status < 500 &&
-          res.status !== 429
-        ) {
+        } else if (res.status >= 400 && res.status < 500 && res.status !== 429) {
           console.log("Client-side error ", res);
         }
       },
@@ -415,7 +455,6 @@ export default function App() {
             (message) => message.id === parsedData.id
           );
           if (index !== -1) {
-            // Message with the same id found, update it
             const updatedMessages = [...prevMessages];
             updatedMessages[index] = {
               ...updatedMessages[index],
@@ -423,7 +462,6 @@ export default function App() {
             };
             return updatedMessages;
           } else {
-            // New message, add it to the array
             const newMessage: ChatMessage = {
               id: parsedData.id,
               role: "assistant",
@@ -443,6 +481,7 @@ export default function App() {
       },
     });
   }
+  
 
   useEffect(() => {
     if (currentRow) {
@@ -486,7 +525,7 @@ export default function App() {
           setPostFaultDataCount((count) => count + 1);
           if (postFaultDataCount === postFaultThreshold) {
             setPause.open();
-            const topKKeys = getTopKElements(dataPoints,6);
+            const topKKeys = getTopKElements(dataPoints,topkfeatures);
             console.log(topKKeys);
             const filteredObject = topKKeys.reduce(
               (acc: Record<string, number[]>, key) => {
@@ -495,7 +534,8 @@ export default function App() {
               },
               {}
             );
-            sendFaultToBackend(filteredObject, `Fault-${currentFaultId}`);
+            const filePath = fileId2fileName[selectedFileId]; // Get the file path
+            sendFaultToBackend(filteredObject, `Fault-${currentFaultId}`, filePath);
           }
         }
       } else {
