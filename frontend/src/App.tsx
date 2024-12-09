@@ -22,6 +22,8 @@ import {
   IconReport,
 } from "@tabler/icons-react";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
+import fs from 'fs';
+import path from 'path';
 
 // CONSTANTS
 const fileId2fileName = [
@@ -75,6 +77,7 @@ const fault_name = [
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const columnFilter: string[] = [
+  // "time",
   "A Feed",
   "D Feed",
   "E Feed",
@@ -97,6 +100,25 @@ export const columnFilter: string[] = [
   "Compressor Work",
   "Reactor Coolant Temp",
   "Separator Coolant Temp",
+  "Component A to Reactor",
+  "Component B to Reactor",
+  "Component C to Reactor",
+  "Component D to Reactor",
+  "Component E to Reactor",
+  "Component F to Reactor",
+  "Component A in Purge",
+  "Component B in Purge",
+  "Component C in Purge",
+  "Component D in Purge",
+  "Component E in Purge",
+  "Component F in Purge",
+  "Component G in Purge",
+  "Component H in Purge",
+  "Component D in Product",
+  "Component E in Product",
+  "Component F in Product",
+  "Component G in Product",
+  "Component H in Product",
   "D feed load",
   "E feed load",
   "A feed load",
@@ -112,6 +134,7 @@ export const columnFilter: string[] = [
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const columnFilterUnits: Record<string, string> = {
+  // time: "min",
   "A Feed": "kscmh",
   "D Feed": "kg/hr",
   "E Feed": "kg/hr",
@@ -134,18 +157,40 @@ export const columnFilterUnits: Record<string, string> = {
   "Compressor Work": "kW",
   "Reactor Coolant Temp": "Deg C",
   "Separator Coolant Temp": "Deg C",
-  "D feed load": "%",
-  "E feed load": "%",
-  "A feed load": "%",
-  "A and C feed load": "%",
-  "Compressor recycle valve": "%",
-  "Purge valve": "%",
-  "Separator liquid load": "%",
-  "Stripper liquid load": "%",
-  "Stripper steam valve": "%",
-  "Reactor coolant load": "%",
-  "Condenser coolant load": "%",
+  "Component A to Reactor": "mole %",
+  "Component B to Reactor": "mole %",
+  "Component C to Reactor": "mole %",
+  "Component D to Reactor": "mole %",
+  "Component E to Reactor": "mole %",
+  "Component F to Reactor": "mole %",
+  "Component A in Purge": "mole %",
+  "Component B in Purge": "mole %",
+  "Component C in Purge": "mole %",
+  "Component D in Purge": "mole %",
+  "Component E in Purge": "mole %",
+  "Component F in Purge": "mole %",
+  "Component G in Purge": "mole %",
+  "Component H in Purge": "mole %",
+  "Component D in Product": "mole %",
+  "Component E in Product": "mole %",
+  "Component F in Product": "mole %",
+  "Component G in Product": "mole %",
+  "Component H in Product": "mole %",
+  "D feed load": "mole %",
+  "E feed load": "mole %",
+  "A feed load": "mole %",
+  "A and C feed load": "mole %",
+  "Compressor recycle valve": "mole %",
+  "Purge valve": "mole %",
+  "Separator liquid load": "mole %",
+  "Stripper liquid load": "mole %",
+  "Stripper steam valve": "mole %",
+  "Reactor coolant load": "mole %",
+  "Condenser coolant load": "mole %",
 };
+
+console.log("columnFilter: ", columnFilter);
+console.log("columnFilterUnits: ", columnFilterUnits);
 
 const importanceFilter: string[] = [
   "t2_A Feed",
@@ -170,6 +215,25 @@ const importanceFilter: string[] = [
   "t2_Compressor Work",
   "t2_Reactor Coolant Temp",
   "t2_Separator Coolant Temp",
+  "t2_Component A to Reactor",
+  "t2_Component B to Reactor",
+  "t2_Component C to Reactor",
+  "t2_Component D to Reactor",
+  "t2_Component E to Reactor",
+  "t2_Component F to Reactor",
+  "t2_Component A in Purge",
+  "t2_Component B in Purge",
+  "t2_Component C in Purge",
+  "t2_Component D in Purge",
+  "t2_Component E in Purge",
+  "t2_Component F in Purge",
+  "t2_Component G in Purge",
+  "t2_Component H in Purge",
+  "t2_Component D in Product",
+  "t2_Component E in Product",
+  "t2_Component F in Product",
+  "t2_Component G in Product",
+  "t2_Component H in Product",
   "t2_D feed load",
   "t2_E feed load",
   "t2_A feed load",
@@ -209,7 +273,16 @@ Condensed components move to a product stripping column to remove remaining reac
 Products G and H exit the stripper base and are separated in a downstream refining section which is not included in this problem.
 The inert and byproduct are primarily purged from the system as a vapor from the vapor-liquid separator.`;
 
-const postFaultThreshold: number = 20;
+// Read and parse the config.json file
+// const configPath = path.resolve(__dirname, '../config.json');
+// const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+
+// // Extract the postFaultThreshold value
+// const postFaultThreshold: number = config.fault_trigger_consecutive_step-1;
+// const topkfeatures: number = config.topkfeatures;
+const postFaultThreshold: number = 6-1;
+const topkfeatures: number = 6;
+
 // TYPES
 type RowType = { [key: string]: string };
 type CSVType = RowType[];
@@ -253,14 +326,17 @@ function Simulator({
     console.log("Simulator component mounted or csvFile changed");
     if (csvFile) {
       setCurrentIndex(0);
+      console.log("inside simulator useEffect", csvFile);
       Papa.parse<RowType>(csvFile, {
         complete: (result) => {
-          // console.log('CSV file parsed:', result.data);
+          console.log("CSV file parsed:", result.data);
           setData(result.data);
         },
         header: true,
         download: true,
         skipEmptyLines: "greedy",
+        transformHeader: (header) => header.trim(),
+        transform: (value) => value.trim(),
       });
     }
   }, [csvFile]);
@@ -290,6 +366,7 @@ function getTopKElements(datapoints: DataPointsId, topK: number) {
   // Step 1: Filter the columns based on importance_filter
   const filteredData: DataPointsId = {};
   for (const key of importanceFilter) {
+    console.log("Key", key);
     if (datapoints[key]) {
       filteredData[key] = datapoints[key];
     }
@@ -299,6 +376,7 @@ function getTopKElements(datapoints: DataPointsId, topK: number) {
   const lastElements: { [key: string]: number } = {};
   for (const key in filteredData) {
     lastElements[key] = filteredData[key][filteredData[key].length - 1];
+    console.log("lastElements", lastElements);
   }
 
   // Step 3: Find the top K elements based on these last elements
@@ -306,6 +384,7 @@ function getTopKElements(datapoints: DataPointsId, topK: number) {
     (a, b) => lastElements[b] - lastElements[a]
   );
   const topKKeys = sortedKeys.slice(0, topK).map((a) => a.slice(3));
+  console.log("topKKeys", topKKeys);
 
   return topKKeys;
 }
@@ -337,33 +416,35 @@ export default function App() {
     setSelectedFileId(fault_name.indexOf(value ?? fault_name[0]));
   };
 
+  // UseEffect to log active file path after `selectedFileId` changes
+  useEffect(() => {
+    console.log("Active file path:", fileId2fileName[selectedFileId]);
+  }, [selectedFileId]);
+
+  
   async function sendFaultToBackend(
     fault: { [key: string]: number[] },
-    id: string
+    id: string,
+    filePath: string
   ) {
+    console.log("Sending fault to backend with file:", filePath);
+    console.log("check the datta", JSON.stringify({ data: fault, id: id, file: filePath }));
+    const payload = {
+      data: fault,
+      id: id,
+      file: filePath, // Include the filePath in the request payload
+    };
     await fetchEventSource("http://localhost:8000/explain", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "text/event-stream",
       },
-      body: JSON.stringify({ data: fault, id: id }),
+      body: JSON.stringify(payload),
       async onopen(res) {
         if (res.ok && res.status === 200) {
           console.log("Connection made ", res);
-          // const empty_msg: ChatMessage = {
-          //   id: "",
-          //   role: "assistant",
-          //   text: "",
-          //   images: [],
-          //   explanation: true,
-          // };
-          // setConversation((data) => [...data, empty_msg]);
-        } else if (
-          res.status >= 400 &&
-          res.status < 500 &&
-          res.status !== 429
-        ) {
+        } else if (res.status >= 400 && res.status < 500 && res.status !== 429) {
           console.log("Client-side error ", res);
         }
       },
@@ -374,7 +455,6 @@ export default function App() {
             (message) => message.id === parsedData.id
           );
           if (index !== -1) {
-            // Message with the same id found, update it
             const updatedMessages = [...prevMessages];
             updatedMessages[index] = {
               ...updatedMessages[index],
@@ -382,7 +462,6 @@ export default function App() {
             };
             return updatedMessages;
           } else {
-            // New message, add it to the array
             const newMessage: ChatMessage = {
               id: parsedData.id,
               role: "assistant",
@@ -402,6 +481,7 @@ export default function App() {
       },
     });
   }
+  
 
   useEffect(() => {
     if (currentRow) {
@@ -445,7 +525,7 @@ export default function App() {
           setPostFaultDataCount((count) => count + 1);
           if (postFaultDataCount === postFaultThreshold) {
             setPause.open();
-            const topKKeys = getTopKElements(dataPoints, 6);
+            const topKKeys = getTopKElements(dataPoints,topkfeatures);
             console.log(topKKeys);
             const filteredObject = topKKeys.reduce(
               (acc: Record<string, number[]>, key) => {
@@ -454,7 +534,8 @@ export default function App() {
               },
               {}
             );
-            sendFaultToBackend(filteredObject, `Fault-${currentFaultId}`);
+            const filePath = fileId2fileName[selectedFileId]; // Get the file path
+            sendFaultToBackend(filteredObject, `Fault-${currentFaultId}`, filePath);
           }
         }
       } else {
