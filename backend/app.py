@@ -135,7 +135,6 @@ def ChatModelCompletion(
             }
             yield f"data: {json.dumps(response_data)}\n\n"
             index += 1
-    # print(f"Sent {index} chunks")
 
 
 def get_full_response(messages: list[dict[str, str]], model: str = "gpt-4o", seed: int = 0):
