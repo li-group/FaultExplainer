@@ -2,6 +2,6 @@
     "model": "gpt-4o",
     "fault_trigger_consecutive_step": 6,
     "topkfeatures": 6,
-    "prompt": "explain root"
+    "prompt": "explain"
 }
   
