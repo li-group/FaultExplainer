@@ -1,6 +1,6 @@
 # FaultExplainer
 
-##Video Demo
+## Video Demo
 
 [![Video Demo](https://img.youtube.com/vi/AIrq0ulJt1E/0.jpg)](https://youtu.be/AIrq0ulJt1E)
 
